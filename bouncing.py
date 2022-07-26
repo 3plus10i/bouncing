@@ -404,9 +404,3 @@ if __name__ == '__main__':
         'visual fps': bc.static['visual fps']
     }
     [print(x) for x in summary.items()]
-
-    # tmp = ''
-    # for i in range(3):
-    #     print(tmp+str(3-i), end='')
-    #     tmp = '\b'*len(str(3-i))
-    #     time.sleep(1)

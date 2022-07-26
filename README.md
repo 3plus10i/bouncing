@@ -17,7 +17,7 @@ just run _run.py_
 - [x] multi ball
 - [x] close figure to exit
 - [x] allow user set settings before mainloop 
-- [ ] shooting
+- [x] shooting
 - [ ] _Path_ intersection check
 - [ ] buttons: start, pause, close
 - [ ] add / delete balls in mainloop

@@ -25,7 +25,7 @@ def level():
     for i in range(4):
         y = i + 4
         for x in range(i, 8 - i):
-            level_info.obstacle.append(Obstacle(x, y, 1))
+            level_info.obstacle.append(Obstacle(x, y, 4-i))
 
     ## 质点
     level_info.pos_0 = []
