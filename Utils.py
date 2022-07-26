@@ -24,7 +24,7 @@ class LevelInfo:
 # 只描述一个时刻的状态
 class State:
     def __init__(self):
-        self.hit_index = -1  # 谁被撞了
+        self.hit_index = -1  # 被撞击的障碍物的序号
         self.land = False  # 是否落地
         self.wait = False  # 中断并阻塞，需要处理其他任务
 

@@ -7,11 +7,12 @@
 #   颜色管理 done
 #   多球 done
 #   关闭窗口即终止程序 done
-#   射击 on dev
+#   射击 done
 #   用路径检查实现碰撞判定
 #       不见得就更好，应该详细分析穿越的问题
 #   按钮：开始，暂停，结束
 #   动态多球
+#   人机交互管理：各种状态的提示
 
 
 import time
@@ -23,7 +24,7 @@ from Utils import *
 
 class Bouncing:
     ## 版本
-    bouncing_version = 0.8
+    bouncing_version = 1.0
 
     ## 加载关卡信息，静态初始化
     def __init__(self, level: LevelInfo):
@@ -34,23 +35,23 @@ class Bouncing:
         self.init_flag = False
 
         # 参数
-        self.t = 0.             # 仿真时序
-        self.t_len = 0          # 仿真时长
-        self.total_time = 0.    # 总仿真时长(在这里设置n倍速)
-        self.n_num = 0          # 仿真点数
-        self.total_frames = 0   # 总仿真帧数
-        self.fps = 0.           # 仿真频率
-        self.render_per = 0     # 每 render_per 个frame渲染一帧
-        self.ob_idx = {}        # 障碍物快速索引
+        self.t = 0.  # 仿真时序
+        self.t_len = 0  # 仿真时长
+        self.total_time = 0.  # 总仿真时长(在这里设置n倍速)
+        self.n_num = 0  # 仿真点数
+        self.total_frames = 0  # 总仿真帧数
+        self.fps = 0.  # 仿真频率
+        self.render_per = 0  # 每 render_per 个frame渲染一帧
+        self.ob_idx = {}  # 障碍物快速索引
 
         # 统计信息
         self.static = {
-            'bounce number': 0,
             'total hardness': 0,
+            'bounce number': 0,
+            'hit number': 0,
             'shoot number': 0,
             'last_run_time': 0.0,
             'visual fps': 0.0,
-            'hit number': 0
         }
 
         # 关卡信息
@@ -91,6 +92,11 @@ class Bouncing:
             if self.obstacle[i].x >= self.rect_w or self.obstacle[i].y >= self.rect_h:
                 raise 'Obstacle value invalid!'
 
+        ## 射击管理
+        self.shoot_v_max = 4.0  # 射击时最大击发速度
+        self.shootline_colormap = 'cool'  # 射击线颜色映射表
+        self.shootline_linewidth = 1.5  # 射击线宽度
+
     ## 初始化动态参数和变量
     # 由静态参数派生而来
     def initialize(self):
@@ -114,14 +120,14 @@ class Bouncing:
         plt.ion()
         plt.rcParams['toolbar'] = 'None'  # 禁用工具栏
         self.graph.fig = plt.figure(figsize=self.graph.fig_size, frameon=False)
-        self.graph.fig.canvas.set_window_title('bouncing!')
+        self.graph.fig.canvas.manager.set_window_title('bouncing!  ver. ' + str(self.bouncing_version))
         self.graph.ax = plt.subplot(xlim=[0, self.rect_w], ylim=[0, self.rect_h], aspect=1)
         self.graph.ax.set_xticks([i for i in range(self.rect_w)], labels=[])
         self.graph.ax.set_yticks([i for i in range(self.rect_h)], labels=[])
         self.graph.ax.grid(visible=True, linewidth=0.5)
         self.graph.ax.tick_params(axis='both', length=0)
         self.graph.ax.set_xlabel('rest time: ' + str(self.t_len))
-        self.graph.ax.set_title('bouncing! ver. ' + str(self.bouncing_version))
+        self.graph.ax.set_title('')
 
         ## 小球管理
         # 生成句柄
@@ -180,7 +186,7 @@ class Bouncing:
                 pos_new, __ = self.move(pos=ball.pos, v=ball.v, dt=dtp)
                 if sum(abs((cell_new - cell_old))) <= 1:
                     break
-            cell_old = np.floor(ball.pos).astype(int)
+            cell_old = np.floor(ball.pos).astype(int)  # FIXME 这里的逻辑有问题
             cell_new = np.floor(pos_new).astype(int)
 
         # 防超速
@@ -199,6 +205,9 @@ class Bouncing:
             self.static['bounce number'] += 1
             if hit_floor:
                 ball.v[1] = -ball.v[1]
+                state_info.land = True
+                state_info.wait = True
+                return state_info
             if hit_ceil:
                 ball.v[1] = -ball.v[1]
             if hit_left:
@@ -222,15 +231,69 @@ class Bouncing:
         self.ball[ball_num].v = v
         return state_info
 
+    def shoot_limiter(self, pos, target):
+        vector = target - pos
+        length = np.linalg.norm(vector, 2)
+        if length > self.shoot_v_max:
+            length = self.shoot_v_max
+            vector = self.shoot_v_max * vector / np.linalg.norm(vector, 2)
+            target = pos + vector
+            del vector
+        return target, length
+
     # 击发函数
-    # TODO 需要好好设计
-    def shoot(self, ball, target):
-        # target
-        target = target - ball.pos
-        ball.v = np.linalg.norm(ball.v, 2) * target / np.linalg.norm(target, 2)
-        pos, v = self.move(pos=ball.pos, v=ball.v)
+    # 通过互动确定给定ball的shoot方向和力度，并据此更新给定ball下一帧的状态
+    def shoot(self, ball_num):
+        # 正常通过左击来确定射击方向和力度
+        #   也可以通过右击来放弃射击，保持原速度射出
+
+        # 移动光标 回调函数
+        def onmove(event):
+            if event.xdata is None:
+                return
+            target, stl_len = self.shoot_limiter(current_pos, np.array([event.xdata, event.ydata]))
+            shootline_handle.set(
+                xdata=[current_pos[0], target[0]],
+                ydata=[current_pos[1], target[1]],
+                linewidth=self.shootline_linewidth,
+                color=plt.get_cmap(self.shootline_colormap)(stl_len / self.shoot_v_max)
+            )
+
+        # 点击 回调函数
+        def onclick(event):
+            # 左击：击发
+            # 右击：原速释放
+            # 其他按键：无效
+            if event.button.value == 3:  # 右击
+                shoot_v[0] = self.ball[ball_num].v
+            elif event.button.value == 1:  # 左击
+                target, __ = self.shoot_limiter(current_pos, np.array([event.xdata, event.ydata]))
+                shoot_v[0] = target - current_pos
+            else:
+                return
+            shootline_handle.remove()
+            self.graph.fig.canvas.mpl_disconnect(cid_click)
+            self.graph.fig.canvas.mpl_disconnect(cid_move)
+            wait_for_shoot[0] = False
+            return
+
+        shootline_handle, = plt.plot(0, 0, linestyle='--')
+        current_pos = self.ball[ball_num].pos
+        wait_for_shoot = [True]
+        shoot_v = [np.zeros((1, 2))]
+        cid_move = self.graph.fig.canvas.mpl_connect('motion_notify_event', onmove)
+        cid_click = self.graph.fig.canvas.mpl_connect('button_press_event', onclick)
+        while wait_for_shoot[0]:
+            # 图窗存在性检查
+            if not plt.fignum_exists(self.graph.fig.number):
+                raise 'Bouncing has been terminated!'
+            plt.pause(0.2)
+        pos, v = self.move(pos=self.ball[ball_num].pos, v=shoot_v[0])
+        self.ball[ball_num].pos = pos
+        self.ball[ball_num].v = v
+
         self.static['shoot number'] += 1
-        return pos, v
+        return
 
     # 运动行为
     # 运动产生的后果：位置变化，速度变化
@@ -252,6 +315,7 @@ class Bouncing:
     def mainloop(self):
         exit_flag = 0
         time_start = time.time()
+        wait_time = 0
         # 动态初始化
         if not self.init_flag:
             self.initialize()
@@ -264,6 +328,15 @@ class Bouncing:
                 for ball_num in range(self.n_ball):
                     # 更新运动状态
                     state_info = self.next_state(ball_num)
+
+                    # 检查中断
+                    if state_info.wait:
+                        tmp = time.time()
+                        self.graph.ax.set_title('waiting for your shoot ...')
+                        self.shoot(ball_num)
+                        self.graph.ax.set_title('')
+                        wait_time += time.time() - tmp
+                        del tmp
 
                     # 更新头
                     self.ball[ball_num].head.handle.set(
@@ -292,7 +365,7 @@ class Bouncing:
                 # 渲染画面
                 # 降频渲染+动态时间管理
                 render_counter += 1
-                if render_counter % self.render_per == 0 or frame == self.total_frames-1:
+                if render_counter % self.render_per == 0 or frame == self.total_frames - 1:
                     # 检查存在性
                     if not plt.fignum_exists(self.graph.fig.number):
                         raise 'Bouncing has been terminated!'
@@ -303,29 +376,32 @@ class Bouncing:
                     render_counter = 0
 
         except Exception:
-            # raise  # for debug
             exit_flag = -1
+            # raise  # for debug
         time_end = time.time()
         self.static['last_run_time'] = time_end - time_start
-        self.static['visual fps'] = self.total_frames / self.render_per / (time_end - time_start)
+        self.static['visual fps'] = self.total_frames / self.render_per / (time_end - time_start - wait_time)
         return exit_flag
 
 
 if __name__ == '__main__':
-    from levels import level_test_3
+    from levels import level_1
 
-    bc = Bouncing(level_test_3.level())
-    bc.ball[1].tail.max_len = 100  # 0.8支持用户修改参数了
-    bc.ball[1].head.color = [0.9, 0.1, 0.1]
+    bc = Bouncing(level_1.level())
+    bc.ball[0].tail.color = [0.4, 0.4, 0.8]  # 0.8支持用户修改参数了
+    bc.ball[0].head.color = [0.9, 0.1, 0.1]
 
     flag = bc.mainloop()
+
+    [print(x) for x in bc.static.items()]
+
     summary = {
         'flag': flag,
         'total time': bc.total_time,
         'real time': bc.static['last_run_time'],
         'fps': bc.fps,
         'fps_render': bc.fps_render,
-        'real fps': bc.static['visual fps']
+        'visual fps': bc.static['visual fps']
     }
     [print(x) for x in summary.items()]
 
