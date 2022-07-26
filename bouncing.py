@@ -15,8 +15,9 @@
 
 
 import time
+
 import matplotlib.pyplot as plt
-import numpy as np
+
 from Utils import *
 
 
@@ -310,9 +311,9 @@ class Bouncing:
 
 
 if __name__ == '__main__':
-    from levels import test_level_3
+    from levels import level_test_3
 
-    bc = Bouncing(test_level_3.level())
+    bc = Bouncing(level_test_3.level())
     bc.ball[1].tail.max_len = 100  # 0.8支持用户修改参数了
     bc.ball[1].head.color = [0.9, 0.1, 0.1]
 

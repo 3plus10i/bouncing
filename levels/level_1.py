@@ -23,18 +23,18 @@ def level():
     # x坐标，y坐标，硬度
     level_info.obstacle = []
     for i in range(4):
-        y = i+4
-        for x in range(i, 8-i):
+        y = i + 4
+        for x in range(i, 8 - i):
             level_info.obstacle.append(Obstacle(x, y, 1))
 
     ## 质点
     level_info.pos_0 = []
     level_info.v_0 = []
     for i in range(1):
-        level_info.pos_0.append( np.array([level_info.rect_w / 2, 0.01]) )  # 质点位置初值
+        level_info.pos_0.append(np.array([level_info.rect_w / 2, 0.01]))  # 质点位置初值
         va_0 = np.pi / 3  # 质点速度方向初值(rad)
         vm_0 = 1  # 质点速度大小初值
-        level_info.v_0.append( vm_0 * np.array([np.cos(va_0), np.sin(va_0)]) )
+        level_info.v_0.append(vm_0 * np.array([np.cos(va_0), np.sin(va_0)]))
 
     ## 加速度场
     def gravity(pos: np.array) -> np.array:

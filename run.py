@@ -1,9 +1,9 @@
 
-from levels import test_level_1, test_level_2, test_level_3, level_1
+from levels import level_test_1, level_test_2, level_test_3, level_1
 from bouncing07 import Bouncing
 
-# bc = Bouncing(test_level_1.level())
-# bc = Bouncing(test_level_2.level())
+# bc = Bouncing(level_test_1.level())
+# bc = Bouncing(level_test_2.level())
 
 level = level_1.level()
 print(level.level_name)
