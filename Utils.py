@@ -1,25 +1,23 @@
 # 为 bouncing 提供基础工具支持
-# from ver.0.7
-
+# since ver.0.7
+import matplotlib as mpl
 import numpy as np
 
 
 # 关卡信息
 class LevelInfo:
     def __init__(self):
+        self.bouncing_version = 0
         self.level_name = ''
         self.level_description = ''
-        self.obstacle: list[Obstacle] = []
-        self.bouncing_version = 0
         self.rect_w = 0
         self.rect_h = 0
-        self.pos_0 = None
-        self.v_0 = None
+        self.pos_0 = None  # List
+        self.v_0 = None  # List
         self.acc = None  # Callable
+        self.obstacle: list[Obstacle] = []
         self.t_start = 0
         self.t_stop = 0
-        self.level_name: str
-        self.level_description: str
 
 
 # 状态信息数据结构
@@ -28,15 +26,15 @@ class State:
     def __init__(self):
         self.hit_index = -1  # 谁被撞了
         self.land = False  # 是否落地
-        self.pause = False  # 中断位置更新，需要处理其他任务
+        self.wait = False  # 中断并阻塞，需要处理其他任务
 
 
 # 图形，只负责描述界面配置
 class Graph:
     def __init__(self):
-        self.fig = None
+        self.fig: mpl.figure = None
         self.fig_size = (6, 6)
-        self.ax = None
+        self.ax: mpl.axes.Axes = None
 
 
 # 质点的显示参数

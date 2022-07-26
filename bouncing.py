@@ -114,6 +114,7 @@ class Bouncing:
         plt.ion()
         plt.rcParams['toolbar'] = 'None'  # 禁用工具栏
         self.graph.fig = plt.figure(figsize=self.graph.fig_size, frameon=False)
+        self.graph.fig.canvas.set_window_title('bouncing!')
         self.graph.ax = plt.subplot(xlim=[0, self.rect_w], ylim=[0, self.rect_h], aspect=1)
         self.graph.ax.set_xticks([i for i in range(self.rect_w)], labels=[])
         self.graph.ax.set_yticks([i for i in range(self.rect_h)], labels=[])
