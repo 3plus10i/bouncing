@@ -38,20 +38,21 @@ class Bouncing:
         # 参数
         self.t = 0.  # 仿真时序
         self.t_len = 0  # 仿真时长
-        self.total_time = 0.  # 总仿真时长(在这里设置n倍速)
+        self.simulate_speed = 5  # 倍速
+        self.simulate_time = 0.  # 总仿真时长
         self.n_num = 0  # 仿真点数
         self.total_frames = 0  # 总仿真帧数
-        self.fps = 0.  # 仿真频率
+        self.fps_simulate = 0.  # 仿真频率
         self.render_per = 0  # 每 render_per 个frame渲染一帧
         self.ob_idx = {}  # 障碍物快速索引
 
         # 统计信息
-        self.static = {
+        self.statistic = {
             'total hardness': 0,
             'bounce number': 0,
             'hit number': 0,
             'shoot number': 0,
-            'last_run_time': 0.0,
+            'last run time': 0.0,
             'visual fps': 0.0,
         }
 
@@ -109,13 +110,13 @@ class Bouncing:
         # 时间和帧数管理
         self.t = self.t_start
         self.t_len = self.t_stop - self.t_start  # 仿真时长
-        self.total_time = self.t_len / 5  # 总仿真时长(在这里设置n倍速)
+        self.simulate_time = self.t_len / self.simulate_speed  # 总仿真时长
         self.n_num = int(self.t_len / self.dt)  # 仿真点数
         self.total_frames = self.n_num  # 总仿真帧数
-        self.fps = self.total_frames / self.total_time  # 仿真频率
-        if self.fps_render > self.fps:
-            self.fps_render = self.fps
-        self.render_per = int(self.fps / self.fps_render)  # 每 render_per 次渲染一帧
+        self.fps_simulate = self.total_frames / self.simulate_time  # 仿真频率
+        if self.fps_render > self.fps_simulate:
+            self.fps_render = self.fps_simulate
+        self.render_per = int(self.fps_simulate / self.fps_render)  # 每 render_per 次渲染一帧
 
         ## 初始化图形元素
         # 界面graph
@@ -164,7 +165,7 @@ class Bouncing:
                 facecolor=ob.color, linewidth=0.5
             )
             self.obstacle[i].handle = self.graph.ax.add_patch(rect)
-            self.static['total hardness'] += self.obstacle[i].hard
+            self.statistic['total hardness'] += self.obstacle[i].hard
 
         ## 返回初始化标记
         self.init_flag = True
@@ -206,7 +207,7 @@ class Bouncing:
         hit_left = pos_new[0] < 0
         hit_right = pos_new[0] > self.rect_w
         if hit_ceil or hit_floor or hit_left or hit_right:
-            self.static['bounce number'] += 1
+            self.statistic['bounce number'] += 1
             if hit_floor:
                 ball.v[1] = -ball.v[1]
                 state_info.land = True
@@ -219,8 +220,8 @@ class Bouncing:
             if hit_right:
                 ball.v[0] = -ball.v[0]
         elif (cell_new[0], cell_new[1]) in self.ob_idx:
-            self.static['bounce number'] += 1
-            self.static['hit number'] += 1
+            self.statistic['bounce number'] += 1
+            self.statistic['hit number'] += 1
             idx = self.ob_idx[(cell_new[0], cell_new[1])]
             if self.obstacle[idx].hard > 0:
                 if not cell_old[0] == cell_new[0]:
@@ -297,7 +298,7 @@ class Bouncing:
         self.ball[ball_num].pos = pos
         self.ball[ball_num].v = v
 
-        self.static['shoot number'] += 1
+        self.statistic['shoot number'] += 1
         shoot_time = time.time() - shoot_time
         return shoot_time
 
@@ -389,8 +390,8 @@ class Bouncing:
             exit_flag = -1
             # raise  # for debug
         time_end = time.time()
-        self.static['last_run_time'] = time_end - time_start
-        self.static['visual fps'] = self.total_frames / self.render_per / (time_end - time_start - wait_time)
+        self.statistic['last run time'] = time_end - time_start
+        self.statistic['visual fps'] = self.total_frames / self.render_per / (time_end - time_start - wait_time)
         return exit_flag
 
 
@@ -403,14 +404,14 @@ if __name__ == '__main__':
 
     flag = bc.mainloop()
 
-    [print(x) for x in bc.static.items()]
+    [print(x) for x in bc.statistic.items()]
 
     summary = {
         'flag': flag,
-        'total time': bc.total_time,
-        'real time': bc.static['last_run_time'],
-        'fps': bc.fps,
+        'total time': bc.simulate_time,
+        'real time': bc.statistic['last run time'],
+        'fps': bc.fps_simulate,
         'fps_render': bc.fps_render,
-        'visual fps': bc.static['visual fps']
+        'visual fps': bc.statistic['visual fps']
     }
     [print(x) for x in summary.items()]

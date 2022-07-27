@@ -11,15 +11,15 @@ bc.ball[0].head.color = [0.9, 0.1, 0.1]
 
 flag = bc.mainloop()
 
-[print(x) for x in bc.static.items()]
+# [print(x) for x in bc.statistic.items()]
 
 summary = {
     'flag': flag,
-    'total time': bc.total_time,
-    'real time': bc.static['last_run_time'],
-    'fps': bc.fps,
+    'total time': bc.simulate_time,
+    'real time': bc.statistic['last run time'],
+    'fps': bc.fps_simulate,
     'fps_render': bc.fps_render,
-    'visual fps': bc.static['visual fps']
+    'visual fps': bc.statistic['visual fps']
 }
 [print(x) for x in summary.items()]
 
