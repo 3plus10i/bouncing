@@ -1,4 +1,4 @@
-
+# -*- coding: utf-8 -*-
 from levels import level_test_1, level_test_2, level_test_3, level_1
 from bouncing import Bouncing
 

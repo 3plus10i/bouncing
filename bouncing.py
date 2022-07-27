@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # 反弹球
 # 2022年7月26日
 
@@ -56,6 +57,7 @@ class Bouncing:
 
         # 关卡信息
         self.level = level
+        self.level_name = level.level_name
         self.rect_w = level.rect_w
         self.rect_h = level.rect_h
         self.acc = level.acc
@@ -119,6 +121,8 @@ class Bouncing:
         # 界面graph
         plt.ion()
         plt.rcParams['toolbar'] = 'None'  # 禁用工具栏
+        plt.rcParams['font.family'] = ['Microsoft YaHei']
+        # plt.rcParams['font.family'] = ['SimHei']
         self.graph.fig = plt.figure(figsize=self.graph.fig_size, frameon=False)
         self.graph.fig.canvas.manager.set_window_title('bouncing!  ver. ' + str(self.bouncing_version))
         self.graph.ax = plt.subplot(xlim=[0, self.rect_w], ylim=[0, self.rect_h], aspect=1)
@@ -127,7 +131,7 @@ class Bouncing:
         self.graph.ax.grid(visible=True, linewidth=0.5)
         self.graph.ax.tick_params(axis='both', length=0)
         self.graph.ax.set_xlabel('rest time: ' + str(self.t_len))
-        self.graph.ax.set_title('')
+        self.graph.ax.set_title(self.level_name)
 
         ## 小球管理
         # 生成句柄
@@ -218,7 +222,7 @@ class Bouncing:
             self.static['bounce number'] += 1
             self.static['hit number'] += 1
             idx = self.ob_idx[(cell_new[0], cell_new[1])]
-            if idx and self.obstacle[idx].hard > 0:
+            if self.obstacle[idx].hard > 0:
                 if not cell_old[0] == cell_new[0]:
                     ball.v[0] = -ball.v[0]
                 if not cell_old[1] == cell_new[1]:
@@ -277,6 +281,7 @@ class Bouncing:
             wait_for_shoot[0] = False
             return
 
+        shoot_time = time.time()
         shootline_handle, = plt.plot(0, 0, linestyle='--')
         current_pos = self.ball[ball_num].pos
         wait_for_shoot = [True]
@@ -293,7 +298,8 @@ class Bouncing:
         self.ball[ball_num].v = v
 
         self.static['shoot number'] += 1
-        return
+        shoot_time = time.time() - shoot_time
+        return shoot_time
 
     # 运动行为
     # 运动产生的后果：位置变化，速度变化
@@ -324,19 +330,23 @@ class Bouncing:
             for frame in range(self.total_frames):
                 # 圈计
                 loop_timer = time.time()
+
                 # 逐个仿真
                 for ball_num in range(self.n_ball):
                     # 更新运动状态
-                    state_info = self.next_state(ball_num)
+                    if frame > 0:
+                        state_info = self.next_state(ball_num)
+                    else:
+                        state_info = State()
+                        state_info.wait = True
 
                     # 检查中断
                     if state_info.wait:
-                        tmp = time.time()
-                        self.graph.ax.set_title('waiting for your shoot ...')
-                        self.shoot(ball_num)
-                        self.graph.ax.set_title('')
-                        wait_time += time.time() - tmp
-                        del tmp
+                        xl = self.graph.ax.get_xlabel()
+                        self.graph.ax.set_xlabel(xl+'\nwaiting for your shoot ...')
+                        wait_time += self.shoot(ball_num)
+                        self.graph.ax.set_xlabel(xl)
+                        del xl
 
                     # 更新头
                     self.ball[ball_num].head.handle.set(

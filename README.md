@@ -7,7 +7,7 @@ just bouncing
 - matplotlib 3.5.2
 - numpy 1.23.1
 
-## DOME
+## DEMO
 just run _run.py_
 
 ## TODO
