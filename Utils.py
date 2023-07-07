@@ -94,7 +94,8 @@ class Tail:
 
 # 障碍物
 class Obstacle:
-    def __init__(self, x=0, y=0, hard=1, rgb: list[3] = None):
+    # def __init__(self, x=0, y=0, hard=1, rgb: list[3] = None):  # list[3]可能会报错
+    def __init__(self, x=0, y=0, hard=1, rgb: list = None):
         self.x: int = x  # 这里不是int的话会导致很多麻烦
         self.y: int = y
         self.hard: int = hard if hard >= 0 else 0
